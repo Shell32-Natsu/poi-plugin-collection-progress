@@ -1,0 +1,11 @@
+{
+  "name": "poi-plugin-collection-progress",
+  "version": "0.0.1",
+  "description": "A plugin for Poi Kan Colle browser to show the collection progress",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Donny Xia",
+  "license": "MIT"
+}
