@@ -1,11 +1,31 @@
 {
   "name": "poi-plugin-collection-progress",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "A plugin for Poi Kan Colle browser to show the collection progress",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "babel": "babel views/*.jsx -d views"
   },
-  "author": "Donny Xia",
-  "license": "MIT"
+  "author": "Shell32",
+  "license": "MIT",
+  "poiPlugin": {
+    "title": "Ship Girl Collection Progress",
+    "description": "A plugin for Poi Kan Colle browser to show the collection progress",
+    "icon": "map-signs",
+    "apiVer": {
+      "10.3.0": "1.0.0"
+    }
+  },
+  "dependencies": {
+    "react-redux": "^7.1.3"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.7.0",
+    "@babel/core": "^7.7.2",
+    "@babel/plugin-proposal-decorators": "^7.7.0",
+    "@babel/preset-react": "^7.7.0",
+    "eslint": "^6.6.0",
+    "eslint-plugin-react": "^7.16.0"
+  }
 }
