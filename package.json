@@ -13,6 +13,7 @@
     "title": "Ship Girl Collection Progress",
     "description": "A plugin for Poi Kan Colle browser to show the collection progress",
     "icon": "map-signs",
+    "i18nDir": "i18n",
     "apiVer": {
       "10.3.0": "1.0.0"
     }
