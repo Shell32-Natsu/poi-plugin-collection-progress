@@ -9,6 +9,8 @@
   },
   "author": "Shell32",
   "license": "MIT",
+  "homepage": "https://github.com/Shell32-Natsu/poi-plugin-collection-progress",
+  "bugs": "https://github.com/Shell32-Natsu/poi-plugin-collection-progress/issues",
   "poiPlugin": {
     "title": "Ship Girl Collection Progress",
     "description": "A plugin for Poi Kan Colle browser to show the collection progress",
