@@ -5,6 +5,10 @@ var _dec, _class;
 const React = require("react");
 
 const {
+  createRef
+} = require("react");
+
+const {
   Provider,
   connect
 } = require("react-redux");
@@ -14,6 +18,12 @@ const {
 } = require("views/create-store");
 
 const i18next = require("views/env-parts/i18next");
+
+const html2canvas = require("html2canvas");
+
+const {
+  remote
+} = require("electron");
 
 i18next.setDefaultNamespace("poi-plugin-collection-progress"); // Magic from https://github.com/poooi/plugin-navy-album/blob/master/game-misc/magic.es
 
@@ -110,6 +120,13 @@ let ShipCollectionProgress = (_dec = connect(state => ({
   allConst: state.const || {},
   server: state.info.server || {}
 })), _dec(_class = class ShipCollectionProgress extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      "showMarriedShip": false
+    };
+  }
+
   getShipMaxLevel(id) {
     let res = 0;
     Object.entries(this.ownedShips).map(ownedShip => {
@@ -129,11 +146,20 @@ let ShipCollectionProgress = (_dec = connect(state => ({
 
     const allShipsUnique = this.allShipSet.allHeads();
     const shipTypeProgress = {};
+    const shipTypeShipCount = {};
     allShipsUnique.map(id => {
       let shipTypeId = this.allShips[id]["api_stype"]; // Both type 8 and 9 are battleship
 
       if (shipTypeId === 9) shipTypeId = 8;
-      if (!(shipTypeId in shipTypeProgress)) shipTypeProgress[shipTypeId] = [];
+
+      if (!(shipTypeId in shipTypeProgress)) {
+        shipTypeProgress[shipTypeId] = [];
+        shipTypeShipCount[shipTypeId] = {
+          "total": 0,
+          "owned": 0
+        };
+      }
+
       shipTypeProgress[shipTypeId].push({
         "ship_id": id,
         "ship_name": this.allShips[id]["api_name"],
@@ -142,8 +168,10 @@ let ShipCollectionProgress = (_dec = connect(state => ({
         "owned": ownedShipsUnique.has(id),
         "ship_level": this.getShipMaxLevel(id)
       });
+      shipTypeShipCount[shipTypeId]["total"]++;
+      if (ownedShipsUnique.has(id)) shipTypeShipCount[shipTypeId]["owned"]++;
     });
-    return shipTypeProgress;
+    return [shipTypeProgress, shipTypeShipCount];
   }
 
   getShipBannerUrl(id, server) {
@@ -153,16 +181,65 @@ let ShipCollectionProgress = (_dec = connect(state => ({
   getShipProgressList(shipProgress) {
     return shipProgress.map(item => {
       const imageUrl = this.getShipBannerUrl(item["ship_id"], this.server);
-      let className = "ship-avatar";
-      if (item["ship_level"] >= 100) className += " ship-married";
+      let className = "plugin-progress-ship-avatar";
+      if (item["ship_level"] >= 100 && this.state.showMarriedShip) className += " plugin-progress-ship-married";
+      let placeHolderClassName = item["owned"] ? "" : "plugin-progress-not-owned";
       return React.createElement("li", null, React.createElement("div", {
         className: className,
         style: {
           backgroundImage: `url('${imageUrl}')`
         },
         title: `${item["ship_name"]} LV${item["ship_level"]}`
-      }));
+      }, React.createElement("div", {
+        className: placeHolderClassName
+      })));
     });
+  }
+
+  createShowMarriedShipCheckBox() {
+    const handleChange = () => {
+      this.setState({
+        "showMarriedShip": !this.state.showMarriedShip
+      });
+    };
+
+    return React.createElement("label", null, React.createElement("input", {
+      type: "checkbox",
+      checked: this.state.showMarriedShip,
+      onChange: handleChange
+    }), React.createElement("span", null, i18next.t("Show married ships")));
+  }
+
+  createScreenShotButton() {
+    const onStartCapture = async () => {
+      if (!this.captureSection.current) return;
+      const dom = this.captureSection.current;
+      const {
+        width,
+        height
+      } = dom.getBoundingClientRect();
+      let canvas;
+
+      try {
+        canvas = await html2canvas(dom, {
+          allowTaint: true,
+          backgroundColor: '#333',
+          height: _.ceil(height, 16),
+          width: _.ceil(width, 16)
+        });
+      } catch (e) {
+        console.error(e);
+        return;
+      }
+
+      const dataUrl = canvas.toDataURL('image/png');
+      remote.getCurrentWebContents().downloadURL(dataUrl);
+    };
+
+    return React.createElement("button", {
+      onClick: onStartCapture,
+      className: "capture-button"
+    }, i18next.t("Save as image"));
   }
 
   render() {
@@ -171,21 +248,28 @@ let ShipCollectionProgress = (_dec = connect(state => ({
     this.allShips = this.props.allShips;
     this.allShipSet = new UnionFindSet(this.allShips);
     this.ownedShips = this.props.ownedShips;
-    const progress = this.getCollectProgress();
+    this.captureSection = createRef();
+    const [progress, shipNumByType] = this.getCollectProgress();
     return React.createElement("div", {
-      className: "main"
+      className: "plugin-progress-main"
+    }, React.createElement("div", null, this.createShowMarriedShipCheckBox(), this.createScreenShotButton()), React.createElement("div", {
+      ref: this.captureSection
     }, React.createElement("h1", null, i18next.t("Collection Progress")), Object.keys(progress).map(shipTypeId => {
       return React.createElement("div", null, React.createElement("h3", {
-        className: "sub-title"
-      }, this.allConst["$shipTypes"][shipTypeId]["api_name"]), React.createElement("ul", null, this.getShipProgressList(progress[shipTypeId])));
-    }));
+        className: "plugin-progress-sub-title"
+      }, this.allConst["$shipTypes"][shipTypeId]["api_name"], "\xA0", React.createElement("span", null, "(", shipNumByType[shipTypeId]["owned"], "/", shipNumByType[shipTypeId]["total"], ")")), React.createElement("ul", null, this.getShipProgressList(progress[shipTypeId])));
+    })));
   }
 
 }) || _class);
 
-module.exports.reactClass = () => React.createElement(Provider, {
-  store: store
-}, React.createElement("link", {
-  rel: "stylesheet",
-  href: [__dirname, "..", "assets", "collection-progress.css"].join("/")
-}), React.createElement(ShipCollectionProgress, null));
+module.exports.reactClass = () => {
+  return React.createElement(Provider, {
+    store: store
+  }, React.createElement("link", {
+    rel: "stylesheet",
+    href: [__dirname, "..", "assets", "collection-progress.css"].join("/")
+  }), React.createElement(ShipCollectionProgress, {
+    id: "plugin-collection-progress"
+  }));
+};

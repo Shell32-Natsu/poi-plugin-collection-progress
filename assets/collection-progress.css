@@ -1,50 +1,71 @@
-.main {
+.plugin-progress-main {
   margin: 2.5% 5%;
   width: 90%;
   overflow: auto;
   height: 95%;
 }
 
-.main::-webkit-scrollbar {
+.plugin-progress-main::-webkit-scrollbar {
   width: 1rem;
 }
 
-.main::-webkit-scrollbar-track {
+.plugin-progress-main::-webkit-scrollbar-track {
   box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
 }
 
-.main::-webkit-scrollbar-thumb {
+.plugin-progress-main::-webkit-scrollbar-thumb {
   background-color: darkgrey;
   outline: 1px solid slategrey;
 }
 
-.ship-avatar {
+.plugin-progress-ship-avatar {
   width: 60px;
   height: 60px;
   background-position: -110px 0;
   margin: 5px;
 }
 
-ul li {
+.plugin-progress-main ul li {
   float: left;
 }
 
-ul {
+.plugin-progress-main ul::after {
+  content: "";
+  display: block; 
+  clear: both;
+}
+
+.plugin-progress-main ul {
   padding-left: 0;
   list-style: none;
 }
 
-.sub-title {
+.plugin-progress-sub-title {
   float: left;
   width: 100%;
 }
 
-.ship-married {
-  animation: blink 3.0s linear infinite;
+.plugin-progress-ship-married {
+  animation: blink 5.0s linear infinite;
 }
 
 @keyframes blink {
-  0% { box-shadow: 0 0 10px 3px white; }
-  50% { box-shadow: 0 0 5px 0px white; }
-  100% { box-shadow: 0 0 10px 3px white; }
+  0% { box-shadow: 0 -5px 20px -1px white; }
+  25% { box-shadow: 5px 0 20px -1px white; }
+  50% { box-shadow: 0 5px 20px -1px white; }
+  75% { box-shadow: -5px 0 20px -1px white; }
+  100% { box-shadow: 0 -5px 20px -1px white; }
+}
+
+.plugin-progress-not-owned {
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.capture-button {
+  background-color: rgba(0, 0, 0, 0);
+  color: white;
+  margin: 1rem;
+  padding: 0.5rem;
 }

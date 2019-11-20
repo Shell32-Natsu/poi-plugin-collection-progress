@@ -1,9 +1,12 @@
 "use strict";
 
 const React = require("react");
+const { createRef } = require("react");
 const { Provider, connect } = require("react-redux");
 const { store } = require("views/create-store");
 const i18next = require("views/env-parts/i18next");
+const html2canvas = require("html2canvas");
+const { remote } = require("electron");
 i18next.setDefaultNamespace("poi-plugin-collection-progress");
 
 // Magic from https://github.com/poooi/plugin-navy-album/blob/master/game-misc/magic.es
@@ -111,6 +114,11 @@ class UnionFindSet {
   })
 )
 class ShipCollectionProgress extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {"showMarriedShip": false};
+  }
+
   getShipMaxLevel (id) {
     let res = 0;
     Object.entries(this.ownedShips).map(ownedShip => {
@@ -131,13 +139,19 @@ class ShipCollectionProgress extends React.Component {
     // traverse all unique ships
     const allShipsUnique = this.allShipSet.allHeads();
     const shipTypeProgress = {};
+    const shipTypeShipCount = {};
     allShipsUnique.map(id => {
       let shipTypeId = this.allShips[id]["api_stype"];
       // Both type 8 and 9 are battleship
       if (shipTypeId === 9)
         shipTypeId = 8;
-      if (!(shipTypeId in shipTypeProgress))
+      if (!(shipTypeId in shipTypeProgress)) {
         shipTypeProgress[shipTypeId] = [];
+        shipTypeShipCount[shipTypeId] = {
+          "total": 0,
+          "owned": 0
+        };
+      }
       shipTypeProgress[shipTypeId].push({
         "ship_id": id,
         "ship_name": this.allShips[id]["api_name"],
@@ -146,8 +160,11 @@ class ShipCollectionProgress extends React.Component {
         "owned": ownedShipsUnique.has(id),
         "ship_level": this.getShipMaxLevel(id)
       });
+      shipTypeShipCount[shipTypeId]["total"]++;
+      if (ownedShipsUnique.has(id))
+        shipTypeShipCount[shipTypeId]["owned"]++;
     });
-    return shipTypeProgress;
+    return [ shipTypeProgress, shipTypeShipCount ];
   };
 
   getShipBannerUrl (id, server) {
@@ -157,52 +174,103 @@ class ShipCollectionProgress extends React.Component {
   getShipProgressList (shipProgress) {
     return shipProgress.map(item => {
       const imageUrl = this.getShipBannerUrl(item["ship_id"], this.server);
-      let className = "ship-avatar";
-      if (item["ship_level"] >= 100)
-        className += " ship-married";
+      let className = "plugin-progress-ship-avatar";
+      if (item["ship_level"] >= 100 && this.state.showMarriedShip)
+        className += " plugin-progress-ship-married";
+      let placeHolderClassName = item["owned"] ? "" : "plugin-progress-not-owned";
       return <li>
         <div
           className={className}
           style={{backgroundImage: `url('${imageUrl}')`}}
           title={`${item["ship_name"]} LV${item["ship_level"]}`}>
+            <div className={placeHolderClassName}></div>
         </div>
       </li>
     });
   }
 
-  render() {
+  createShowMarriedShipCheckBox () {
+    const handleChange = () => {
+      this.setState({"showMarriedShip": !this.state.showMarriedShip});
+    }
+    return <label>
+      <input type="checkbox" checked={this.state.showMarriedShip} onChange={handleChange}/>
+      <span>{i18next.t("Show married ships")}</span>
+    </label>
+  }
+
+  createScreenShotButton () {
+    const onStartCapture = async () => {
+      if (!this.captureSection.current)
+        return;
+      
+      const dom = this.captureSection.current;
+      const { width, height } = dom.getBoundingClientRect();
+      let canvas;
+
+      try {
+        canvas = await html2canvas(dom, {
+          allowTaint: true,
+          backgroundColor: '#333',
+          height: _.ceil(height, 16),
+          width: _.ceil(width, 16),
+        })
+      } catch (e) {
+        console.error(e);
+        return;
+      }
+      const dataUrl = canvas.toDataURL('image/png');
+      remote.getCurrentWebContents().downloadURL(dataUrl);
+    }
+
+    return <button onClick={onStartCapture} className="capture-button">
+      {i18next.t("Save as image")}
+    </button>
+  }
+
+  render () {
     this.allConst = this.props.allConst;
     this.server = this.props.server;
     this.allShips = this.props.allShips;
     this.allShipSet = new UnionFindSet(this.allShips);
     this.ownedShips = this.props.ownedShips;
+    this.captureSection = createRef();
 
-    const progress = this.getCollectProgress();
+    const [ progress, shipNumByType ] = this.getCollectProgress();
     
     return (
-      <div className="main">
-        <h1>{i18next.t("Collection Progress")}</h1>
-        {
-          Object.keys(progress).map(shipTypeId => {
-            return <div>
-              <h3 className="sub-title">{this.allConst["$shipTypes"][shipTypeId]["api_name"]}</h3>
-              <ul>
-                {this.getShipProgressList(progress[shipTypeId])}
-              </ul>
-            </div>
-          })
-        }
+      <div className="plugin-progress-main">
+        <div>
+          {this.createShowMarriedShipCheckBox()}
+          {this.createScreenShotButton()}
+        </div>
+        <div ref={this.captureSection}>
+          <h1>{i18next.t("Collection Progress")}</h1>
+          {
+            Object.keys(progress).map(shipTypeId => {
+              return <div>
+                <h3 className="plugin-progress-sub-title">
+                  {this.allConst["$shipTypes"][shipTypeId]["api_name"]}&nbsp;
+                  <span>({shipNumByType[shipTypeId]["owned"]}/{shipNumByType[shipTypeId]["total"]})</span>
+                </h3>
+                <ul>
+                  {this.getShipProgressList(progress[shipTypeId])}
+                </ul>
+              </div>
+            })
+          }
+        </div>
       </div>
     )
   }
 }
 
-module.exports.reactClass = () => (
-  <Provider store={store}>
+module.exports.reactClass = () => {
+  return <Provider store={store}>
     <link
       rel="stylesheet"
       href={[__dirname, "..", "assets", "collection-progress.css"].join("/")}
     />
-    <ShipCollectionProgress />
+    <ShipCollectionProgress id="plugin-collection-progress"/>
   </Provider>
-);
+}
