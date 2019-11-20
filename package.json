@@ -1,6 +1,6 @@
 {
   "name": "poi-plugin-collection-progress",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A plugin for Poi Kan Colle browser to show the collection progress",
   "main": "index.js",
   "scripts": {
@@ -17,7 +17,7 @@
     "icon": "map-signs",
     "i18nDir": "i18n",
     "apiVer": {
-      "10.3.0": "1.0.0"
+      "10.3.0": "1.0.2"
     }
   },
   "dependencies": {
